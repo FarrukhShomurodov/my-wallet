@@ -8,6 +8,7 @@ use App\Http\Resources\SubCategoryResource;
 use App\Models\SubCategory;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class SubCategoryController extends Controller
 {
@@ -23,6 +24,11 @@ class SubCategoryController extends Controller
             $user = auth()->user();
 
             $validated = $request->validated();
+
+            if (isset($validated['icon_url'])) {
+                $iconUrl = $request->file('icon_url')->store('icon_url', 'public');
+                $validated['icon_url'] = env('APP_URL') . '/storage/' . $iconUrl;
+            }
 
             $subCategory = SubCategory::query()->create($validated);
 
@@ -55,6 +61,12 @@ class SubCategoryController extends Controller
 
             $validated = $request->validated();
 
+            if (isset($validated['icon_url'])) {
+                Storage::disk('public')->delete($subCategory->icon_url);
+                $iconUrl = $request->file('icon_url')->store('icon_url', 'public');
+                $validated['icon_url'] = env('APP_URL') . '/storage/' . $iconUrl;
+            }
+
             if ($subCategory->is_default === 1) {
                 $user->subCategories()->detach($subCategory->id);
                 $subCategory = SubCategory::query()->create($validated);
@@ -65,7 +77,7 @@ class SubCategoryController extends Controller
 
             return new JsonResponse([
                 'status' => true,
-                'message' => 'Sub category stored successfully',
+                'message' => 'Sub category updated successfully',
                 'data' => new SubCategoryResource($subCategory)
             ], 200);
         } catch (Exception $e) {
@@ -89,11 +101,17 @@ class SubCategoryController extends Controller
 
             $user->subCategories()->detach($subCategory->id);
 
+
             if ($subCategory->is_default !== 1) {
                 $subCategory->delete();
             }
 
-            return new JsonResponse(['data' => 'Deleted successfully'], 200);
+            if ($subCategory->is_default !== 1 && Storage::disk('public')->exists($subCategory->icon_url)) {
+                Storage::disk('public')->delete($subCategory->icon_url);
+            }
+
+
+            return new JsonResponse(['data' => 'Sub category deleted successfully'], 200);
         } catch (Exception $e) {
             return new JsonResponse([
                 'status' => false,

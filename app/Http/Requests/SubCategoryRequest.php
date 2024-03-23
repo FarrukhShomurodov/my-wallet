@@ -24,7 +24,7 @@ class SubCategoryRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:70',
-            'icon_url' => 'required|string',
+            'icon_url' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
             'category_id' => 'required|int|exists:categories,id'
         ];
     }
